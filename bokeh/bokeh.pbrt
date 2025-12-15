@@ -1,23 +1,27 @@
 # bokeh test scene
-Scale -1 1 1
-# eye
-# look at point
 LookAt 0.719 -3.965 1.01
-    -0.101 -0.345 0.827
-    0 0 1
-# up vector
+      -0.101 -0.345 0.827
+      0 0 1
+
 Camera "perspective"
     "float lensradius" [ 0.1 ]
     "float focaldistance" [ 3.7 ]
     "float fov" [ 32 ]
-Sampler "halton"
-    "integer pixelsamples" [ 512 ]
-Integrator "path"
-Film "rgb"
+
+
+Sampler "halton" "integer pixelsamples" 244
+Integrator "emissionvolpath"
+Film "image" "string filename" "simple.png"
+     "integer xresolution" [1600] "integer yresolution" [1600]
+
+PixelFilter "gaussian"
+    "float xwidth" [ 2 ]
+    "float ywidth" [ 2 ]
+
+Film "image"
     "integer yresolution" [ 720 ]
     "integer xresolution" [ 1280 ]
-    "string filename" [ "bokeh.exr" ]
-
+    "string filename" [ "bokeh.png" ]
 
 WorldBegin
 
@@ -29,44 +33,58 @@ Texture "basin_bump_tex" "float" "imagemap"
 Texture "basin_bump_mod" "float" "constant"
     "float value" [ 0.003 ]
 Texture "basin_bump" "float" "scale"
-    "texture scale" [ "basin_bump_mod" ]
-    "texture tex" [ "basin_bump_tex" ]
-# now spot
+    "texture tex1" [ "basin_bump_mod" ]
+    "texture tex2" [ "basin_bump_tex" ]
+
 MakeNamedMaterial "basin"
-    "string type" [ "diffuse" ]
-    "texture displacement" [ "basin_bump" ]
-    "texture reflectance" [ "basin_albedo" ]
+    "string type" [ "matte" ]
+    "texture Kd" [ "basin_albedo" ]
+    "texture bumpmap" [ "basin_bump" ]
+
 Texture "spot_albedo" "spectrum" "imagemap"
     "string filename" [ "textures/spot_albedo.png" ]
-# something vaguely sun-like
 MakeNamedMaterial "spot"
-    "string type" [ "diffuse" ]
-    "texture reflectance" [ "spot_albedo" ]
-# starfield
+    "string type" [ "matte" ]
+    "texture Kd" [ "spot_albedo" ]
+
+# starfield / sun-ish light
 LightSource "distant"
-    "float scale" [2]
-    "blackbody L" [ 5500 ]
+    "rgb L" [ 2 2 2 ]
     "point3 to" [ -0.101 -0.345 0.827 ]
     "point3 from" [ 4.19 1.3 6.84 ]
 
 AttributeBegin
     AreaLightSource "diffuse"
-        "float scale" [200]
-        "blackbody L" [ 5500 ]
+        "rgb L" [ 200 200 200 ]
     Shape "plymesh"
         "string filename" [ "geometry/starfield.ply" ]
 AttributeEnd
-# spot
+
+
+AttributeBegin   
+MakeNamedMedium "fire"
+    "string type" "heterogeneous_emission_evdb"
+    "rgb sigma_a" [2 2 2]
+    "rgb sigma_s" [2 2 2]
+    "float g" [0]
+    "point3 p0" [ -1 -1 -1 ]     # min corner (translate)
+    "point3 p1" [  6  6 6 ]     # max corner (scale/translate)
+    "string vdbpath" ["/home/lucas/Downloads/data/fluid_data_0123.vdb"]
+    "float tempscale" [600]          # multiplies raw grid values to Kelvin-ish
+AttributeEnd
 
 AttributeBegin
-    NamedMaterial "spot"
+  MediumInterface "fire" ""
+  Material "none"
     Shape "plymesh"
-        "string filename" [ "geometry/spot.ply" ]
+        "string filename" [ "geometry/spot.ply" ]  # or a box/mesh sized to your VDB bounds
 AttributeEnd
-# basin
+
 
 AttributeBegin
     NamedMaterial "basin"
     Shape "plymesh"
         "string filename" [ "geometry/basin.ply" ]
 AttributeEnd
+
+WorldEnd
